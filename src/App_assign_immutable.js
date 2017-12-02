@@ -1,19 +1,19 @@
 import React from "react";
+import { fromJS } from "immutable";
 import { Provider, connect } from "react-redux";
 import { createStore, applyMiddleware, combineReducers } from "redux";
 
 import "./App.css";
 
-import todos from "./mock/todo_list";
-
-const todosReducer = (state = todos, action) => {
+import { todos } from "./mock/todo_dict";
+const todosReducer = (state = fromJS(todos), action) => {
   const { type, payload } = action;
   switch (type) {
     case "complete":
-      console.log(type, payload);
-      return state.map(
-        item => (item.id == payload ? { ...item, completed: true } : item)
-      );
+      const start = performance.now();
+      const setInResult = state.setIn([payload, "completed"], true);
+      console.log("IMMUTABLE SETIN COST===>", performance.now() - start);
+      return setInResult;
     default:
       return state;
   }
@@ -37,19 +37,21 @@ class TodoList extends React.Component {
       payload: clickId
     });
   }
-  componentDidMount() {}
   render() {
     const { todos } = this.props;
+    // const start = performance.now();
+    // const todos2JS = todos.toJS();
+    // console.log("TOJS() COST===>", performance.now() - start);
     return (
       <ul>
-        {todos.map(todo => (
+        {Object.entries(todos).map(([id, { completed }]) => (
           <li
-            className={todo.completed ? "completed" : "uncompleted"}
-            id={todo.id}
+            className={completed ? "completed" : "uncompleted"}
+            id={id}
             onClick={this.onClick}
-            key={todo.id}
+            key={id}
           >
-            {todo.id}
+            {id}
           </li>
         ))}
       </ul>
@@ -58,7 +60,11 @@ class TodoList extends React.Component {
 }
 
 const WrapperedTodoList = connect(function mapStateToProps(state) {
-  return state;
+  const { todos } = state;
+  console.log(todos);
+  return {
+    todos: state.todos.toJS()
+  };
 })(TodoList);
 
 class App extends React.Component {
